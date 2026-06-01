@@ -24,8 +24,13 @@ export function QrPreview({ data, config, size = 360, className }: Props) {
 
   return (
     <div
-      className={cn("overflow-hidden rounded-2xl", className)}
-      style={{ width: size, height: size, maxWidth: "100%" }}
+      className={cn(
+        // SVG fills the box; box is square and never wider than its parent,
+        // so the same component is crisp on a 4K monitor and a 320px phone.
+        "overflow-hidden rounded-2xl [&>svg]:block [&>svg]:h-full [&>svg]:w-full",
+        className,
+      )}
+      style={{ width: size, maxWidth: "100%", aspectRatio: "1 / 1" }}
       // The SVG is generated from sanitized config; data is a validated URL.
       dangerouslySetInnerHTML={{ __html: svg }}
     />

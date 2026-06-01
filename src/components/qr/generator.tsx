@@ -216,8 +216,8 @@ export function Generator({ canSave = false }: { canSave?: boolean }) {
       <div className="order-1 space-y-4 lg:order-2">
         <Card className="glass overflow-hidden p-6">
           <div className="flex flex-col items-center gap-4">
-            <div className="rounded-2xl bg-white p-3 shadow-2xl">
-              <QrPreview data={previewData} config={config} size={300} />
+            <div className="w-full max-w-[300px] rounded-2xl bg-white p-3 shadow-2xl">
+              <QrPreview data={previewData} config={config} size={300} className="rounded-lg" />
             </div>
 
             <div className="flex w-full items-center justify-between">

@@ -16,7 +16,7 @@ export default async function DashboardLayout({
     <div className="min-h-screen">
       <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-xl">
         <div className="container flex h-16 items-center justify-between">
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3 sm:gap-6">
             <Link href="/" className="flex items-center gap-2 font-display font-semibold">
               <span className="grid size-7 place-items-center rounded-lg bg-gradient-to-br from-brand-500 to-rose-500 text-white">
                 <QrCode className="size-4" />
@@ -28,11 +28,12 @@ export default async function DashboardLayout({
                 href="/dashboard"
                 className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
               >
-                <LayoutDashboard className="size-4" /> Overview
+                <LayoutDashboard className="size-4" />
+                <span className="hidden sm:inline">Overview</span>
               </Link>
             </nav>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <Button asChild size="sm" variant="gradient">
               <Link href="/generator">New QR</Link>
             </Button>

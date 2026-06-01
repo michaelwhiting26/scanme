@@ -79,12 +79,12 @@ export default async function HomePage() {
               Generate a stunning, highly-scannable <strong className="text-foreground">Instagram QR sticker</strong> in
               seconds. Print it, stick it anywhere, and track every scan that turns into a follower.
             </p>
-            <div className="mt-7 flex items-center justify-center gap-3">
+            <div className="mt-7 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
               <Button asChild size="lg" variant="gradient">
                 <Link href="/generator">Create your QR <ArrowRight /></Link>
               </Button>
               <Button asChild size="lg" variant="outline">
-                <Link href="#themes">Explore themes</Link>
+                <Link href="#features">Explore features</Link>
               </Button>
             </div>
             <p className="mt-3 text-xs text-muted-foreground">

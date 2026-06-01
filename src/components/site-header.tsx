@@ -16,9 +16,7 @@ export async function SiteHeader() {
         </Link>
         <nav className="hidden items-center gap-6 text-sm text-muted-foreground md:flex">
           <Link href="/#features" className="hover:text-foreground">Features</Link>
-          <Link href="/#themes" className="hover:text-foreground">Themes</Link>
           <Link href="/generator" className="hover:text-foreground">Generator</Link>
-          <Link href="/#pricing" className="hover:text-foreground">Pricing</Link>
         </nav>
         <div className="flex items-center gap-2">
           {session?.user ? (
