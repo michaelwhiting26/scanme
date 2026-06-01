@@ -1,0 +1,68 @@
+# Render Blueprint — provisions web service + managed Postgres in one deploy.
+# Docs: https://render.com/docs/blueprint-spec
+databases:
+  - name: scanme-db
+    plan: standard          # upgrade as scan volume grows; enables PITR
+    postgresMajorVersion: "16"
+    ipAllowList: []          # only Render services may connect
+
+services:
+  - type: web
+    name: scanme-web
+    runtime: node
+    plan: standard
+    region: oregon
+    branch: main
+    buildCommand: npm ci && npm run build
+    # Run migrations on deploy, then boot. preDeployCommand runs once per deploy.
+    preDeployCommand: npx prisma migrate deploy
+    startCommand: npm run start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: scanme-db
+          property: connectionString
+      - key: DIRECT_URL
+        fromDatabase:
+          name: scanme-db
+          property: connectionString
+      - key: AUTH_SECRET
+        generateValue: true
+      - key: SCAN_HASH_SALT
+        generateValue: true
+      - key: AUTH_URL
+        sync: false
+      - key: NEXTAUTH_URL
+        sync: false
+      - key: NEXT_PUBLIC_APP_URL
+        sync: false
+      - key: AUTH_GOOGLE_ID
+        sync: false
+      - key: AUTH_GOOGLE_SECRET
+        sync: false
+      - key: EMAIL_SERVER
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: UPLOADTHING_TOKEN
+        sync: false
+
+  # Placeholder worker for async print jobs / heavy exports (V2).
+  # Kept defined so the queue architecture is wired from day one.
+  - type: worker
+    name: scanme-printer-worker
+    runtime: node
+    plan: starter
+    branch: main
+    buildCommand: npm ci && npm run build
+    startCommand: node scripts/printer-worker.mjs
+    autoDeploy: false        # enable when the worker is implemented (V2)
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: scanme-db
+          property: connectionString

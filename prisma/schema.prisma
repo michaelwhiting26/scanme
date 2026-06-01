@@ -1,0 +1,241 @@
+// ScanMe — Prisma schema
+// PostgreSQL. Designed for high-write scan ingestion + fast dashboard reads.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL") // for migrations when using a pooled DATABASE_URL
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AUTH (NextAuth / Auth.js core models)
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum Plan {
+  FREE
+  PRO
+  STUDIO
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  plan          Plan      @default(FREE)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts     Account[]
+  sessions     Session[]
+  qrCodes      QrCode[]
+  downloads    Download[]
+  printerJobs  PrinterJob[]
+
+  @@index([plan])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CORE DOMAIN
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum ExportFormat {
+  PNG
+  SVG
+  PDF
+}
+
+enum StickerSize {
+  S50  // 50x50mm
+  S75  // 75x75mm
+  S100 // 100x100mm
+}
+
+model QrCode {
+  id        String   @id @default(cuid())
+  // Public short slug used in the tracked redirect URL: /r/{slug}
+  slug      String   @unique @default(cuid())
+  userId    String?  // nullable: anonymous codes from the public generator
+  handle    String   // normalized instagram handle, no '@'
+  targetUrl String   // https://instagram.com/<handle>
+
+  // Design configuration (validated theme id + overrides) stored as JSON.
+  // Shape mirrors `QrDesignConfig` in src/lib/qr/types.ts
+  themeId   String   @default("aurora")
+  design    Json
+
+  title     String?
+  archived  Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user        User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  scanEvents  ScanEvent[]
+  downloads   Download[]
+  printerJobs PrinterJob[]
+  daily       ScanDaily[]
+
+  @@index([userId, createdAt])
+  @@index([handle])
+  @@index([slug])
+}
+
+// High-write table. One row per scan/redirect. Keep it narrow.
+model ScanEvent {
+  id        String   @id @default(cuid())
+  qrCodeId  String
+  // Hashed visitor fingerprint (ip+ua+salt) — never store raw IP.
+  visitorHash String
+  isUnique  Boolean  @default(false) // first time this visitorHash hit this code
+  isBot     Boolean  @default(false)
+
+  country   String?  @db.VarChar(2)
+  region    String?
+  city      String?
+
+  device    String?  // mobile | tablet | desktop
+  os        String?
+  browser   String?
+  referer   String?
+
+  createdAt DateTime @default(now())
+
+  qrCode QrCode @relation(fields: [qrCodeId], references: [id], onDelete: Cascade)
+
+  @@index([qrCodeId, createdAt])
+  @@index([qrCodeId, visitorHash])
+  @@index([createdAt])
+}
+
+// Pre-aggregated per-day rollups for fast dashboard reads.
+// Updated transactionally on each scan (upsert + increment).
+model ScanDaily {
+  id          String   @id @default(cuid())
+  qrCodeId    String
+  day         DateTime @db.Date
+  scans       Int      @default(0)
+  uniqueScans Int      @default(0)
+  // Compact device/country breakdowns: { mobile: 12, desktop: 3 }
+  devices     Json     @default("{}")
+  countries   Json     @default("{}")
+
+  qrCode QrCode @relation(fields: [qrCodeId], references: [id], onDelete: Cascade)
+
+  @@unique([qrCodeId, day])
+  @@index([qrCodeId, day])
+}
+
+model Download {
+  id       String       @id @default(cuid())
+  qrCodeId String
+  userId   String?
+  format   ExportFormat
+  size     StickerSize?
+  dpi      Int          @default(300)
+  bytes    Int?
+  createdAt DateTime    @default(now())
+
+  qrCode QrCode @relation(fields: [qrCodeId], references: [id], onDelete: Cascade)
+  user   User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([qrCodeId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PRINTING (architecture in place; execution stubbed behind PrinterProvider)
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum PrinterVendor {
+  BROTHER_QL
+  DYMO
+  ZEBRA
+  GENERIC_PDF
+}
+
+enum PrinterJobStatus {
+  QUEUED
+  RENDERING
+  READY     // print-ready file produced
+  SENT      // dispatched to a provider
+  PRINTED
+  FAILED
+}
+
+model PrinterJob {
+  id        String           @id @default(cuid())
+  qrCodeId  String
+  userId    String?
+  vendor    PrinterVendor    @default(GENERIC_PDF)
+  status    PrinterJobStatus @default(QUEUED)
+  size      StickerSize      @default(S75)
+  copies    Int              @default(1)
+  // Vendor-specific payload (label dimensions, media type, dither config…)
+  spec      Json             @default("{}")
+  artifactUrl String?        // URL to the generated print-ready asset
+  error     String?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  qrCode QrCode @relation(fields: [qrCodeId], references: [id], onDelete: Cascade)
+  user   User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([userId, createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RATE LIMITING (DB fallback when no Redis is configured)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model RateBucket {
+  key       String   @id // e.g. "qr:create:1.2.3.4"
+  count     Int      @default(0)
+  expiresAt DateTime
+
+  @@index([expiresAt])
+}

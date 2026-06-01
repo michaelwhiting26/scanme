@@ -1,0 +1,112 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Light theme (secondary — app defaults to dark) */
+    --background: 0 0% 100%;
+    --foreground: 240 10% 4%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 4%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 4%;
+    --primary: 263 70% 56%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 5% 96%;
+    --secondary-foreground: 240 6% 10%;
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 4% 46%;
+    --accent: 240 5% 96%;
+    --accent-foreground: 240 6% 10%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 6% 90%;
+    --input: 240 6% 90%;
+    --ring: 263 70% 56%;
+    --radius: 0.875rem;
+  }
+
+  .dark {
+    /* Primary theme — deep near-black with violet accent (Linear/Vercel vibe) */
+    --background: 240 10% 3.5%;
+    --foreground: 0 0% 98%;
+    --card: 240 8% 6%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 9% 5%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 263 85% 68%;
+    --primary-foreground: 240 10% 4%;
+    --secondary: 240 5% 12%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 5% 11%;
+    --muted-foreground: 240 5% 60%;
+    --accent: 240 5% 14%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 72% 56%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5% 14%;
+    --input: 240 5% 16%;
+    --ring: 263 85% 68%;
+  }
+
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv11", "ss01";
+    text-rendering: optimizeLegibility;
+  }
+}
+
+@layer components {
+  /* Glass surface used for floating panels / nav */
+  .glass {
+    @apply border border-white/10 bg-white/[0.04] backdrop-blur-xl;
+    box-shadow:
+      0 1px 0 0 rgba(255, 255, 255, 0.05) inset,
+      0 8px 40px -12px rgba(0, 0, 0, 0.5);
+  }
+
+  /* Subtle text gradient for hero headlines */
+  .text-gradient {
+    @apply bg-gradient-to-br from-white via-white to-white/50 bg-clip-text text-transparent;
+  }
+  .text-brand-gradient {
+    @apply bg-gradient-to-r from-brand-400 via-fuchsia-400 to-rose-400 bg-clip-text text-transparent;
+  }
+
+  /* Animated aurora glow used behind the hero */
+  .aurora-bg {
+    background: radial-gradient(
+        60% 60% at 20% 10%,
+        hsl(263 85% 60% / 0.25),
+        transparent 60%
+      ),
+      radial-gradient(50% 50% at 90% 20%, hsl(330 85% 60% / 0.2), transparent 60%),
+      radial-gradient(60% 60% at 50% 100%, hsl(190 85% 55% / 0.15), transparent 60%);
+  }
+
+  .grid-bg {
+    background-image: theme("backgroundImage.grid-faint");
+    background-size: 56px 56px;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 30%, transparent 75%);
+  }
+}
+
+::selection {
+  background: hsl(263 85% 68% / 0.35);
+}
+
+/* Scrollbar polish */
+.dark ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: hsl(240 5% 20%);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
